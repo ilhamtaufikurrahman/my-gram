@@ -27,7 +27,7 @@ func UserRegister(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Error binding",
+			"error":   "Bad request",
 			"message": err.Error(),
 		})
 		return
@@ -56,16 +56,25 @@ func UserLogin(c *gin.Context) {
 	contentType := helpers.GetContentType(c)
 	User := models.User{}
 	password := ""
+	var err error
 
 	if contentType == appJSON {
-		c.ShouldBindJSON(&User)
+		err = c.ShouldBindJSON(&User)
 	} else {
-		c.ShouldBind(&User)
+		err = c.ShouldBind(&User)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": err.Error(),
+		})
+		return
 	}
 
 	password = User.Password
 
-	err := db.Debug().Where("email=?", User.Email).Take(&User).Error
+	err = db.Debug().Where("email=?", User.Email).Take(&User).Error
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -85,12 +94,17 @@ func UserLogin(c *gin.Context) {
 		return
 	}
 
-	token := helpers.GenerateToken(
+	token, err := helpers.GenerateToken(
 		User.Id,
-		User.Email,
-		User.Username,
-		User.Age,
 	)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": err.Error(),
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,

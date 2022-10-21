@@ -21,7 +21,7 @@ type UserSocialMedia struct {
 	Email    string `json:"email"`
 }
 
-type GetSocialMedias struct {
+type SocialMediasResponse struct {
 	Id             uint            `json:"id"`
 	Name           string          `json:"name"`
 	SocialMediaUrl string          `json:"social_media_url"`

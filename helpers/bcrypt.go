@@ -8,9 +8,8 @@ import (
 
 // ? hashing password before saved in database
 func HashPass(p string) string {
-	salt := 8
 	password := []byte(p)
-	hash, err := bcrypt.GenerateFromPassword(password, salt)
+	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
 
 	if err != nil {
 		fmt.Println("Error hashing password:", err)
