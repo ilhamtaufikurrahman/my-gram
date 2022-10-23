@@ -5,6 +5,7 @@ import (
 	"my-gram/helpers"
 	"my-gram/models"
 	"net/http"
+	"strconv"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -126,4 +127,81 @@ func GetComments(c *gin.Context) {
 	c.JSON(http.StatusOK, CommentsResponse)
 }
 
-func UpdateComment(c *gin.Context) {}
+func UpdateComment(c *gin.Context) {
+	var (
+		db             = database.GetDB()
+		userData       = c.MustGet("userData").(jwt.MapClaims)
+		userId         = uint(userData["id"].(float64))
+		commentId, err = strconv.Atoi(c.Param("commentId"))
+		contentType    = helpers.GetContentType(c)
+		Comment        = models.Comment{}
+	)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Invalid parameter",
+		})
+		return
+	}
+
+	if contentType == appJSON {
+		err = c.ShouldBindJSON(&Comment)
+	} else {
+		err = c.ShouldBind(&Comment)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if Comment.Message == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your message is required",
+		})
+		return
+	}
+
+	err = db.Select("user_id", "photo_id").First(&Comment, commentId).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "Data not found",
+			"message": "Data doesnt exist",
+		})
+		return
+	}
+
+	if Comment.UserId != userId {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "You are not allowed to access this data",
+		})
+		return
+	}
+
+	Comment.Id = uint(commentId)
+
+	err = db.Debug().Model(&Comment).Where("id=?", commentId).Updates(&Comment).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "Data not found",
+			"message": "Data doesnt exist",
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"id":         Comment.Id,
+		"message":    Comment.Message,
+		"photo_id":   Comment.PhotoId,
+		"user_id":    Comment.UserId,
+		"updated_at": Comment.UpdatedAt,
+	})
+}
