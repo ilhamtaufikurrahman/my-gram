@@ -197,3 +197,63 @@ func UpdatePhoto(c *gin.Context) {
 		"updated_at": Photo.UpdatedAt,
 	})
 }
+
+func DeletePhoto(c *gin.Context) {
+	var (
+		db           = database.GetDB()
+		userData     = c.MustGet("userData").(jwt.MapClaims)
+		userId       = uint(userData["id"].(float64))
+		photoId, err = strconv.Atoi(c.Param("photoId"))
+		Photo        = models.Photo{}
+	)
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Invalid parameter",
+		})
+		return
+	}
+
+	err = db.Select("user_id").First(&Photo, photoId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error":   "Data not found",
+			"message": "Data doesnt exist",
+		})
+		return
+	}
+
+	if Photo.UserId != userId {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "You are not allowed to access this data",
+		})
+		return
+	}
+
+	err = db.Delete(&Photo, "id", photoId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   "Error deleting item",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err = db.Delete(models.Comment{}, "photo_id", photoId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   "Error deleting item",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Your comment has been successfuly deleted",
+	})
+}

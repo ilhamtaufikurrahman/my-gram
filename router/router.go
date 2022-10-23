@@ -32,6 +32,7 @@ func StartApp() *gin.Engine {
 		photosRouter.POST("/", controllers.CreatePhoto)
 		photosRouter.GET("/", controllers.GetPhotos)
 		photosRouter.PUT("/:photoId", controllers.UpdatePhoto)
+		photosRouter.DELETE("/:photoId", controllers.DeletePhoto)
 	}
 
 	commentsRouter := r.Group("/comments")

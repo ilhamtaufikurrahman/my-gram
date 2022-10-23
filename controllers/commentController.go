@@ -86,12 +86,12 @@ func CreateComment(c *gin.Context) {
 func GetComments(c *gin.Context) {
 	var (
 		db               = database.GetDB()
-		Comment          = []models.Comment{}
+		Comments         = []models.Comment{}
 		CommentsResponse = []models.CommentsResponse{}
 		err              error
 	)
 
-	err = db.Preload("User").Preload("Photo").Find(&Comment).Error
+	err = db.Preload("User").Preload("Photo").Find(&Comments).Error
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -101,7 +101,7 @@ func GetComments(c *gin.Context) {
 		return
 	}
 
-	for _, comment := range Comment {
+	for _, comment := range Comments {
 		CommentsResponse = append(CommentsResponse, models.CommentsResponse{
 			Id:        comment.Id,
 			Message:   comment.Message,
@@ -254,5 +254,4 @@ func DeleteComment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Your comment has been successfuly deleted",
 	})
-
 }

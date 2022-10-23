@@ -7,8 +7,8 @@ type Comment struct {
 	UserId  uint
 	PhotoId uint   `json:"photo_id" form:"photo_id"`
 	Message string `gorm:"not null" json:"message" form:"message"`
-	User    *User
-	Photo   *Photo
+	User    *User  `json:"user"`
+	Photo   *Photo `json:"photo"`
 }
 
 type CommentsResponse struct {
