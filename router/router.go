@@ -26,5 +26,11 @@ func StartApp() *gin.Engine {
 		socialMediaRouter.GET("/", controllers.GetSocialMedias)
 	}
 
+	photosRouter := r.Group("/photos")
+	{
+		photosRouter.Use(middlewares.Authentication())
+		photosRouter.POST("/", controllers.CreatePhoto)
+	}
+
 	return r
 }

@@ -15,9 +15,9 @@ func CreateSocialMedia(c *gin.Context) {
 	var (
 		db          = database.GetDB()
 		userData    = c.MustGet("userData").(jwt.MapClaims)
+		userId      = uint(userData["id"].(float64))
 		contentType = helpers.GetContentType(c)
 		SocialMedia = models.SocialMedia{}
-		userId      = uint(userData["id"].(float64))
 		err         error
 	)
 

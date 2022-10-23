@@ -119,8 +119,8 @@ func UserRegister(c *gin.Context) {
 	err = db.Debug().Create(&User).Error
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad request",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
 			"message": err.Error(),
 		})
 		return
