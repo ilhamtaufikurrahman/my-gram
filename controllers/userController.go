@@ -5,7 +5,10 @@ import (
 	"my-gram/helpers"
 	"my-gram/models"
 	"net/http"
+	"net/mail"
+	"strconv"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,10 +17,13 @@ var (
 )
 
 func UserRegister(c *gin.Context) {
-	db := database.GetDB()
-	contentType := helpers.GetContentType(c)
-	User := models.User{}
-	var err error
+	var (
+		db          = database.GetDB()
+		contentType = helpers.GetContentType(c)
+		User        = models.User{}
+		NewUser     = models.User{}
+		err         error
+	)
 
 	if contentType == appJSON {
 		err = c.ShouldBindJSON(&User)
@@ -26,9 +32,86 @@ func UserRegister(c *gin.Context) {
 	}
 
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if User.Email == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Bad request",
-			"message": err.Error(),
+			"message": "Your email is required",
+		})
+		return
+	}
+
+	_, errEmail := mail.ParseAddress(User.Email)
+	if errEmail != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Invalid email format",
+		})
+		return
+	}
+
+	db.Where("email=?", User.Email).First(&NewUser)
+
+	if NewUser.Email == User.Email {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Email already used",
+		})
+		return
+	}
+
+	if User.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your username is required",
+		})
+		return
+	}
+
+	db.Where("username", User.Username).First(&NewUser)
+
+	if NewUser.Username == User.Username {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Username already used",
+		})
+		return
+	}
+
+	if User.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your password is required",
+		})
+		return
+	}
+
+	if len(User.Password) < 6 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Password has to have a minimum length of 6 characters",
+		})
+		return
+	}
+
+	if User.Age == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your age is required",
+		})
+		return
+	}
+
+	if User.Age <= 8 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Age must be more than 8 years",
 		})
 		return
 	}
@@ -52,11 +135,13 @@ func UserRegister(c *gin.Context) {
 }
 
 func UserLogin(c *gin.Context) {
-	db := database.GetDB()
-	contentType := helpers.GetContentType(c)
-	User := models.User{}
-	password := ""
-	var err error
+	var (
+		db          = database.GetDB()
+		contentType = helpers.GetContentType(c)
+		User        = models.User{}
+		password    = ""
+		err         error
+	)
 
 	if contentType == appJSON {
 		err = c.ShouldBindJSON(&User)
@@ -65,8 +150,8 @@ func UserLogin(c *gin.Context) {
 	}
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad request",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
 			"message": err.Error(),
 		})
 		return
@@ -76,20 +161,12 @@ func UserLogin(c *gin.Context) {
 
 	err = db.Debug().Where("email=?", User.Email).Take(&User).Error
 
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":   "Unauthorized",
-			"message": "Invalid email",
-		})
-		return
-	}
-
 	comparePass := helpers.ComparePass([]byte(User.Password), []byte(password))
 
-	if !comparePass {
+	if err != nil || !comparePass {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":   "Unauthorized",
-			"message": "Invalid password",
+			"message": "Invalid password or passowrd",
 		})
 		return
 	}
@@ -108,5 +185,141 @@ func UserLogin(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
+	})
+}
+
+func UserUpdate(c *gin.Context) {
+	var (
+		db          = database.GetDB()
+		userData    = c.MustGet("userData").(jwt.MapClaims)
+		contentType = helpers.GetContentType(c)
+		User        = models.User{}
+		NewUser     = models.User{}
+		userId      = userData["id"].(float64)
+	)
+
+	paramUserId, err := strconv.Atoi(c.Param("userId"))
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Invalid parameter",
+		})
+		return
+	}
+
+	if contentType == appJSON {
+		err = c.ShouldBindJSON(&User)
+	} else {
+		err = c.ShouldBind(&User)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if User.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your email is required",
+		})
+		return
+	}
+
+	_, errEmail := mail.ParseAddress(User.Email)
+	if errEmail != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Invalid email format",
+		})
+		return
+	}
+
+	db.Where("email=?", User.Email).First(&NewUser)
+
+	if NewUser.Email == User.Email {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Email already used",
+		})
+		return
+	}
+
+	if User.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your username is required",
+		})
+		return
+	}
+
+	db.Where("username", User.Username).First(&NewUser)
+
+	if NewUser.Username == User.Username {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Username already used",
+		})
+		return
+	}
+
+	err = db.Select("id", "age").First(&User, paramUserId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error":   "Data not found",
+			"message": "Data doesnt exist",
+		})
+		return
+	}
+
+	if User.Id != uint(userId) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "You are not allowed to access this data",
+		})
+		return
+	}
+
+	db.Where("email=?", User.Email).First(&NewUser)
+
+	if User.Email == NewUser.Email {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Email has been used",
+		})
+		return
+	}
+
+	db.Where("username=?", User.Username).First(&NewUser)
+
+	if User.Username == NewUser.Username {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Username has been used",
+		})
+		return
+	}
+
+	err = db.Model(&User).Where("id=?", paramUserId).Updates(&User).Error
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   "Data not found",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":         User.Id,
+		"email":      User.Email,
+		"username":   User.Username,
+		"age":        User.Age,
+		"updated_at": User.UpdatedAt,
 	})
 }

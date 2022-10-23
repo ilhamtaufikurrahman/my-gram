@@ -12,12 +12,14 @@ import (
 )
 
 func CreateSocialMedia(c *gin.Context) {
-	db := database.GetDB()
-	userData := c.MustGet("userData").(jwt.MapClaims)
-	contentType := helpers.GetContentType(c)
-	SocialMedia := models.SocialMedia{}
-	userId := uint(userData["id"].(float64))
-	var err error
+	var (
+		db          = database.GetDB()
+		userData    = c.MustGet("userData").(jwt.MapClaims)
+		contentType = helpers.GetContentType(c)
+		SocialMedia = models.SocialMedia{}
+		userId      = uint(userData["id"].(float64))
+		err         error
+	)
 
 	if contentType == appJSON {
 		err = c.ShouldBindJSON(&SocialMedia)
@@ -26,9 +28,25 @@ func CreateSocialMedia(c *gin.Context) {
 	}
 
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if SocialMedia.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Bad request",
-			"message": err.Error(),
+			"message": "Your social media name is required",
+		})
+		return
+	}
+
+	if SocialMedia.SocialMediaUrl == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your social media url is required",
 		})
 		return
 	}
@@ -38,8 +56,8 @@ func CreateSocialMedia(c *gin.Context) {
 	err = db.Debug().Create(&SocialMedia).Error
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad request",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
 			"message": err.Error(),
 		})
 		return
@@ -55,13 +73,14 @@ func CreateSocialMedia(c *gin.Context) {
 }
 
 func UpdateSocialMedia(c *gin.Context) {
-	db := database.GetDB()
-	userData := c.MustGet("userData").(jwt.MapClaims)
-	contentType := helpers.GetContentType(c)
-	SocialMedia := models.SocialMedia{}
-	var err error
-
-	socialMediaId, err := strconv.Atoi(c.Param("socialMediaId"))
+	var (
+		db                 = database.GetDB()
+		userData           = c.MustGet("userData").(jwt.MapClaims)
+		userId             = uint(userData["id"].(float64))
+		socialMediaId, err = strconv.Atoi(c.Param("socialMediaId"))
+		contentType        = helpers.GetContentType(c)
+		SocialMedia        = models.SocialMedia{}
+	)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -71,8 +90,6 @@ func UpdateSocialMedia(c *gin.Context) {
 		return
 	}
 
-	userId := uint(userData["id"].(float64))
-
 	if contentType == appJSON {
 		err = c.ShouldBindJSON(&SocialMedia)
 	} else {
@@ -80,9 +97,25 @@ func UpdateSocialMedia(c *gin.Context) {
 	}
 
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if SocialMedia.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":   "Bad request",
-			"message": err.Error(),
+			"message": "Your social media name is required",
+		})
+		return
+	}
+
+	if SocialMedia.SocialMediaUrl == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Your social media url is required",
 		})
 		return
 	}
@@ -127,15 +160,17 @@ func UpdateSocialMedia(c *gin.Context) {
 }
 
 func GetSocialMedias(c *gin.Context) {
-	db := database.GetDB()
-	SocialMedias := []models.SocialMedia{}
-	SocialMediasResponse := []models.SocialMediasResponse{}
+	var (
+		db                   = database.GetDB()
+		SocialMedias         = []models.SocialMedia{}
+		SocialMediasResponse = []models.SocialMediasResponse{}
+	)
 
 	err := db.Preload("User").Find(&SocialMedias).Error
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Bad request",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
 			"message": err.Error(),
 		})
 		return
@@ -163,11 +198,13 @@ func GetSocialMedias(c *gin.Context) {
 }
 
 func DeleteSocialMedia(c *gin.Context) {
-	db := database.GetDB()
-	socialMediaId, err := strconv.Atoi(c.Param("socialMediaId"))
-	SocialMedia := models.SocialMedia{}
-	userData := c.MustGet("userData").(jwt.MapClaims)
-	userId := uint(userData["id"].(float64))
+	var (
+		db                 = database.GetDB()
+		socialMediaId, err = strconv.Atoi(c.Param("socialMediaId"))
+		SocialMedia        = models.SocialMedia{}
+		userData           = c.MustGet("userData").(jwt.MapClaims)
+		userId             = uint(userData["id"].(float64))
+	)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
