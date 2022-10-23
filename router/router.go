@@ -31,8 +31,15 @@ func StartApp() *gin.Engine {
 		photosRouter.Use(middlewares.Authentication())
 		photosRouter.POST("/", controllers.CreatePhoto)
 		photosRouter.GET("/", controllers.GetPhotos)
-		photosRouter.GET("/:photoId", controllers.UpdatePhoto)
 		photosRouter.PUT("/:photoId", controllers.UpdatePhoto)
+	}
+
+	commentsRouter := r.Group("/comments")
+	{
+		commentsRouter.Use(middlewares.Authentication())
+		commentsRouter.POST("/", controllers.CreateComment)
+		commentsRouter.GET("/", controllers.GetComments)
+		commentsRouter.PUT("/:commentId", controllers.UpdateComment)
 	}
 
 	return r

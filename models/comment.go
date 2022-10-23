@@ -1,8 +1,37 @@
 package models
 
+import "time"
+
 type Comment struct {
 	GormModel
 	UserId  uint
-	PhotoId uint
+	PhotoId uint   `json:"photo_id" form:"photo_id"`
 	Message string `gorm:"not null" json:"message" form:"message"`
+	User    *User
+	Photo   *Photo
+}
+
+type CommentsResponse struct {
+	Id        uint         `json:"id"`
+	Message   string       `json:"message"`
+	PhotoId   uint         `json:"photo_id"`
+	UserId    uint         `json:"user_id"`
+	UpdatedAt time.Time    `json:"updated_at"`
+	CreatedAt time.Time    `json:"created_at"`
+	User      UserComment  `json:"user"`
+	Photo     PhotoComment `json:"photo"`
+}
+
+type UserComment struct {
+	Id       uint   `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+}
+
+type PhotoComment struct {
+	Id       uint   `json:"id"`
+	Title    string `json:"title"`
+	Caption  string `json:"caption"`
+	PhotoUrl string `json:"photo_url"`
+	UserId   uint   `json:"user_id"`
 }
