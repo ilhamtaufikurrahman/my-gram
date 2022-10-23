@@ -233,7 +233,7 @@ func DeletePhoto(c *gin.Context) {
 		return
 	}
 
-	err = db.Delete(&Photo, "id", photoId).Error
+	err = db.Delete(models.Comment{}, "photo_id", photoId).Error
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -243,7 +243,7 @@ func DeletePhoto(c *gin.Context) {
 		return
 	}
 
-	err = db.Delete(models.Comment{}, "photo_id", photoId).Error
+	err = db.Delete(&Photo, "id", photoId).Error
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

@@ -16,7 +16,7 @@ var (
 	appJSON = "application/json"
 )
 
-func UserRegister(c *gin.Context) {
+func RegisterUser(c *gin.Context) {
 	var (
 		db          = database.GetDB()
 		contentType = helpers.GetContentType(c)
@@ -134,7 +134,7 @@ func UserRegister(c *gin.Context) {
 	})
 }
 
-func UserLogin(c *gin.Context) {
+func LoginUser(c *gin.Context) {
 	var (
 		db          = database.GetDB()
 		contentType = helpers.GetContentType(c)
@@ -188,7 +188,7 @@ func UserLogin(c *gin.Context) {
 	})
 }
 
-func UserUpdate(c *gin.Context) {
+func UpdateUser(c *gin.Context) {
 	var (
 		db          = database.GetDB()
 		userData    = c.MustGet("userData").(jwt.MapClaims)
@@ -321,5 +321,85 @@ func UserUpdate(c *gin.Context) {
 		"username":   User.Username,
 		"age":        User.Age,
 		"updated_at": User.UpdatedAt,
+	})
+}
+
+func DeleteUser(c *gin.Context) {
+	var (
+		db               = database.GetDB()
+		userData         = c.MustGet("userData").(jwt.MapClaims)
+		userId           = uint(userData["id"].(float64))
+		paramUserId, err = strconv.Atoi(c.Param("userId"))
+		User             = models.User{}
+	)
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error":   "Bad request",
+			"message": "Invalid parameter",
+		})
+		return
+	}
+
+	err = db.Select("id").First(&User, paramUserId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error":   "Data not found",
+			"message": "Data doesnt exist",
+		})
+		return
+	}
+
+	if userId != uint(paramUserId) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "You are not allowed to access this data",
+		})
+		return
+	}
+
+	err = db.Delete(models.SocialMedia{}, "user_id", userId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   "Error deleting item",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err = db.Delete(models.Comment{}, "user_id", userId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   "Error deleting item",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err = db.Delete(models.Photo{}, "user_id", userId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   "Error deleting item",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err = db.Delete(User, "id", paramUserId).Error
+
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error":   "Error deleting item",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Your account has been successfuly deleted",
 	})
 }
