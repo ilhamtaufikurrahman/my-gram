@@ -40,6 +40,7 @@ func StartApp() *gin.Engine {
 		commentsRouter.POST("/", controllers.CreateComment)
 		commentsRouter.GET("/", controllers.GetComments)
 		commentsRouter.PUT("/:commentId", controllers.UpdateComment)
+		commentsRouter.DELETE("/:commentId", controllers.DeleteComment)
 	}
 
 	return r
