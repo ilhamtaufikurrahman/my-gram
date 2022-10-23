@@ -131,7 +131,7 @@ func UpdateSocialMedia(c *gin.Context) {
 	}
 
 	if SocialMedia.UserId != userId {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":   "Unauthorized",
 			"message": "You are not allowed to access this data",
 		})
