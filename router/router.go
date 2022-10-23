@@ -30,6 +30,7 @@ func StartApp() *gin.Engine {
 	{
 		photosRouter.Use(middlewares.Authentication())
 		photosRouter.POST("/", controllers.CreatePhoto)
+		photosRouter.GET("/", controllers.GetPhotos)
 	}
 
 	return r

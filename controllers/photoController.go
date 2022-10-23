@@ -71,3 +71,40 @@ func CreatePhoto(c *gin.Context) {
 		"created_at": Photo.CreatedAt,
 	})
 }
+
+func GetPhotos(c *gin.Context) {
+	var (
+		db             = database.GetDB()
+		Photos         = []models.Photo{}
+		PhotosResponse = []models.PhotosResponse{}
+		err            error
+	)
+
+	err = db.Preload("User").Find(&Photos).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Internal server error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	for _, photo := range Photos {
+		PhotosResponse = append(PhotosResponse, models.PhotosResponse{
+			Id:        photo.Id,
+			Title:     photo.Title,
+			Caption:   photo.Caption,
+			PhotoUrl:  photo.PhotoUrl,
+			UserId:    photo.UserId,
+			CreatedAt: photo.CreatedAt,
+			UpdatedAt: photo.UpdatedAt,
+			User: models.UserPhoto{
+				Email:    photo.User.Email,
+				Username: photo.User.Username,
+			},
+		})
+	}
+
+	c.JSON(http.StatusOK, PhotosResponse)
+}
